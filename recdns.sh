@@ -55,10 +55,14 @@ else
 fi
 
 echo "Scanning the subnet..."
-sudo nmap -sU -p 53 --max-rtt-timeout 200ms --max-retries 1 -oG dns.gnmap $1/$2 1>/dev/null && sudo chmod 644 dns.gnmap
+SSTART=$(date +%s)
+sudo -s -- 'nmap -sSU -Pn -T3 -p 53 --max-rtt-timeout 200ms --max-retries 1 -oG dns.gnmap '$1'/'$2' 1>/dev/null; chmod 644 dns.gnmap'
+SSTOP=$(date +%s)
 echo "Finding Open DNS servers..."
-cat dns.gnmap | grep -v "Status: Up" | grep -iv "filtered" | grep -i open | awk '{print $2}' > $OPEN
+cat dns.gnmap | grep -i "open/udp/" | awk '{print $2}' > $OPEN
+cat dns.gnmap | grep -i "open/tcp/" | awk '{print $2}' >> $OPEN
 
+DSTART=$(date +%s)
 for i in `cat $OPEN`
 do
 	dig @$i www.bored.com | grep -A5 ";; ANSWER SECTION:" | grep "209.239.173.62" > /dev/null
@@ -67,11 +71,14 @@ do
 		echo $i >> $ANSWER
 	fi
 done
+DSTOP=$(date +%s)
 
-echo "Sorting the Open DNS servers..."
 cat $ANSWER | uniq | sort | uniq > $SORTED && rm -rf $ANSWER
 
 TOTAL=`cat $SORTED | wc -l | sed -e 's/^[ \t]*//'`
-
-echo "There are $TOTAL Open DNS Resolvers on $1/$2"
-echo "Run \`cat $HOME/$SORTED\` to get a list of the Open Recursive DNS servers"
+printf "Scan Time: %ds\tResolve Time: %ds\n"  $(echo "$SSTOP - $SSTART"|bc) $(echo "$DSTOP - $DSTART"|bc)
+echo "Open DNS Resolvers on $1/$2: $TOTAL"
+if [ "$TOTAL" -gt "0" ]; then
+	echo "Run \`cat $HOME/$SORTED\` to get a list of the Open Recursive DNS servers"
+fi
+exit 0
