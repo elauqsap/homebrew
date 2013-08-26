@@ -56,7 +56,7 @@ fi
 
 echo "Scanning the subnet..."
 SSTART=$(date +%s)
-sudo -s -- 'nmap -sSU -Pn -T3 -p 53 --max-rtt-timeout 200ms --max-retries 1 -oG dns.gnmap '$1'/'$2' 1>/dev/null; chmod 644 dns.gnmap'
+sudo bash -c 'nmap -sSU -Pn -T3 -p 53 --max-rtt-timeout 200ms --max-retries 1 -oG dns.gnmap '$1'/'$2' 1>/dev/null; chmod 644 ~/recdns/dns.gnmap'
 SSTOP=$(date +%s)
 echo "Finding Open DNS servers..."
 cat dns.gnmap | grep -i "open/udp/" | awk '{print $2}' > $OPEN
