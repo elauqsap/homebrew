@@ -8,9 +8,10 @@
 ##
 
 HOME=~/recdns
-OPEN="open.txt"
-ANSWER="ans.txt"
-SORTED="sort.txt"
+GNMAP=$HOME/dns.gnmap
+OPEN=$HOME/open.txt
+ANSWER=$HOME/ans.txt
+SORTED=$HOME/sort.txt
 
 which nmap > /dev/null
 if [ "$?" -eq "1" ]; then
@@ -56,11 +57,11 @@ fi
 
 echo "Scanning the subnet..."
 SSTART=$(date +%s)
-sudo bash -c 'nmap -sSU -Pn -T3 -p 53 --max-rtt-timeout 200ms --max-retries 1 -oG dns.gnmap '$1'/'$2' 1>/dev/null; chmod 644 ~/recdns/dns.gnmap'
+sudo bash -c 'nmap -sSU -Pn -T3 -p 53 --max-rtt-timeout 200ms --max-retries 1 -oG '$GNMAP' '$1'/'$2' 1>/dev/null; chmod 644 '$GNMAP''
 SSTOP=$(date +%s)
 echo "Finding Open DNS servers..."
-cat dns.gnmap | grep -i "open/udp/" | awk '{print $2}' > $OPEN
-cat dns.gnmap | grep -i "open/tcp/" | awk '{print $2}' >> $OPEN
+cat $GNMAP | grep -i "open/udp/" | awk '{print $2}' > $OPEN
+cat $GNMAP | grep -i "open/tcp/" | awk '{print $2}' >> $OPEN
 
 DSTART=$(date +%s)
 for i in `cat $OPEN`
@@ -73,7 +74,7 @@ do
 done
 DSTOP=$(date +%s)
 
-cat $ANSWER | uniq | sort | uniq > $SORTED && rm -rf $ANSWER
+cat $ANSWER | uniq | sort | uniq > $SORTED
 
 TOTAL=`cat $SORTED | wc -l | sed -e 's/^[ \t]*//'`
 printf "Scan Time: %ds\tResolve Time: %ds\n"  $(echo "$SSTOP - $SSTART"|bc) $(echo "$DSTOP - $DSTART"|bc)
