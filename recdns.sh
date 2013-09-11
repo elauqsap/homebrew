@@ -8,6 +8,7 @@
 ##
 
 HOME=~/recdns
+UNMAP=$HOME/udp.gnmap
 GNMAP=$HOME/dns.gnmap
 OPEN=$HOME/open.txt
 ANSWER=$HOME/ans.txt
@@ -57,16 +58,16 @@ fi
 
 echo "Scanning the subnet..."
 SSTART=$(date +%s)
-sudo bash -c 'nmap -sSU -Pn -T3 -p 53 --max-rtt-timeout 200ms --max-retries 1 -oG '$GNMAP' '$1'/'$2' 1>/dev/null; chmod 644 '$GNMAP''
+sudo bash -c 'nmap -sS -Pn -T4 -p 53 --max-rtt-timeout 150ms --max-retries 1 -oG '$GNMAP' '$1'/'$2' 1>/dev/null; nmap -sU -Pn -T3 -p 53 --max-rtt-timeout 590ms --max-retries 2 -oG '$UNMAP' --min-hostgroup 75 --max-hostgroup 95 '$1'/'$2' 1>/dev/null; chmod 644 '$GNMAP'; chmod 644 '$UNMAP''
 SSTOP=$(date +%s)
 echo "Finding Open DNS servers..."
-cat $GNMAP | grep -i "open/udp/" | awk '{print $2}' > $OPEN
+cat $UNMAP | grep -i "open/udp/" | awk '{print $2}' > $OPEN
 cat $GNMAP | grep -i "open/tcp/" | awk '{print $2}' >> $OPEN
 
 DSTART=$(date +%s)
 for i in `cat $OPEN`
 do
-	dig @$i www.bored.com | grep -A5 ";; ANSWER SECTION:" | grep "209.239.173.62" > /dev/null
+	dig @$i www.bored.com | grep -A5 ";; ANSWER SECTION:" | grep -v "128.255" | grep -E '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3} &> /dev/null'
 	if [ "$?" -eq "0" ]
 	then
 		echo $i >> $ANSWER
@@ -74,12 +75,17 @@ do
 done
 DSTOP=$(date +%s)
 
+if [ ! -e $ANSWER ]; then
+	echo "No Open Recursive DNS Resolvers were found on $1/$2"
+	printf "Scan Time: %ds\tResolve Time: %ds\n"  $(echo "$SSTOP - $SSTART"|bc) $(echo "$DSTOP - $DSTART"|bc)
+	exit 0
+fi
 cat $ANSWER | uniq | sort | uniq > $SORTED
 
 TOTAL=`cat $SORTED | wc -l | sed -e 's/^[ \t]*//'`
 printf "Scan Time: %ds\tResolve Time: %ds\n"  $(echo "$SSTOP - $SSTART"|bc) $(echo "$DSTOP - $DSTART"|bc)
 echo "Open DNS Resolvers on $1/$2: $TOTAL"
 if [ "$TOTAL" -gt "0" ]; then
-	echo "Run \`cat $HOME/$SORTED\` to get a list of the Open Recursive DNS servers"
+	echo "Run \`cat $SORTED\` to get a list of the Open Recursive DNS servers"
 fi
 exit 0
