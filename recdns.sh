@@ -67,7 +67,7 @@ cat $GNMAP | grep -i "open/tcp/" | awk '{print $2}' >> $OPEN
 DSTART=$(date +%s)
 for i in `cat $OPEN`
 do
-	dig @$i www.bored.com | grep -A5 ";; ANSWER SECTION:" | grep -v "128.255" | grep -E '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3} &> /dev/null'
+	dig @$i www.bored.com | grep -A5 ";; ANSWER SECTION:" | grep -v "$i" | grep -E '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3} &> /dev/null'
 	if [ "$?" -eq "0" ]
 	then
 		echo $i >> $ANSWER
